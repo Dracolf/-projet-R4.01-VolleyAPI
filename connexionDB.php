@@ -1,9 +1,9 @@
 <?php
     function getDBConnection() {
-        $server = 'sql312.infinityfree.com';
-        $login = 'if0_37676623';
-        $mdp = 'theadmin31';
-        $db = 'if0_37676623_gestionvolley';
+        $server = "mysql-volleycoachpro.alwaysdata.net";
+        $login = "403542";
+        $mdp = "Iutinfo!";
+        $db = "volleycoachpro_bd";
 
         try {
             $pdo = new PDO("mysql:host=$server;dbname=$db;charset=utf8mb4", $login, $mdp);
