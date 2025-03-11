@@ -32,7 +32,7 @@
     }
 
     // Vérification du token en envoyant une requête GET à l’API d'authentification
-    $auth_url = "https://volleycoachpro.alwaysdata.net/authapi/auth.php";
+    $auth_url = "https://volleycoachpro.alwaysdata.net/authapi/";
     $ch = curl_init($auth_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer $token"]);

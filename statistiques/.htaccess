@@ -1,0 +1,5 @@
+RewriteEngine On
+RewriteBase /volleyapi/statistiques/
+
+# Rediriger avec ou sans le slash final vers statistiques.php
+RewriteRule ^/?$ statistiques.php [L]
