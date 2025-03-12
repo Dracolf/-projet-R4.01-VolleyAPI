@@ -12,80 +12,68 @@
         exit();
     }
 
+    // Récupération du token JWT depuis l'en-tête Authorization
+    function get_bearer_token() {
+        $headers = apache_request_headers();
+        if (!isset($headers['Authorization'])) {
+            return null;
+        }
+        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+            return $matches[1];
+        }
+        return null;
+    }
+
+    $token = get_bearer_token();
+
+    if (!$token) {
+        deliver_response(403, "Accès interdit : Aucun token fourni");
+        exit();
+    }
+
+    // Vérification du token en envoyant une requête GET à l’API d'authentification
+    $auth_url = "https://volleycoachpro.alwaysdata.net/authapi/";
+    $ch = curl_init($auth_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer $token"]);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $data = json_decode($response, true);
+
+    if ($http_code !== 200 || !isset($data['message'])) {
+        deliver_response(403, "Accès interdit : Token invalide");
+        exit();
+    }
+
     $http_method = $_SERVER['REQUEST_METHOD'];
     switch ($http_method) {
         case "GET":
-            if (isset($_GET['id'])) {
-                $data = 
-                if ($data == []) {
-                    deliver_response(404, "Aucune donnée trouvée");
-                } else {
-                    deliver_response(200, "Requête GET réussie", $data);
-                }
+            $data = getAllJoueurs($linkpdo);
+            if ($data == []) {
+                deliver_response(404, "Aucune donnée trouvée");
             } else {
-                $data = 
                 deliver_response(200, "Requête GET réussie", $data);
-            }
-            break;
-            
-        case "POST":
-            $postedData = file_get_contents('php://input');
-            $data = json_decode($postedData, true);
-            if (isset($data[''])) {
-                $result = 
-                deliver_response(201, "Phrase ajoutée avec succès", $result);
-            } else {
-                deliver_response(400, "Aucune phrase renseignée");
-            }
-            break;
-
-        case "PATCH":
-            if (isset($_GET['id'])) {
-                $postedData = file_get_contents('php://input');
-                $data = json_decode($postedData, true);
-                $result = patchChuckFact($linkpdo, $_GET['id'], $data['phrase'] ?? null, $data['vote'] ?? null, $data['faute'] ?? null, $data['signalement'] ?? null);
-                if ($result == []) {
-                    deliver_response(404, "Phrase inexistante");
-                } else {
-                    deliver_response(200, "Phrase modifiée", $result);
-                }
-            } else {
-                deliver_response(400, "ID manquant");
             }
             break;
 
         case "PUT":
-            if (isset($_GET['id'])) {
+            if (isset($_GET['licence'])) {
                 $postedData = file_get_contents('php://input');
                 $data = json_decode($postedData, true);
-                if (isset($data['phrase'], $data['vote'], $data['faute'], $data['signalement'])) {
-                    $result = putChuckFact($linkpdo, $_GET['id'], $data['phrase'], $data['vote'], $data['faute'], $data['signalement']);
-                    if ($result == []) {
-                        deliver_response(404, "Phrase inexistante");
-                    } else {
-                        deliver_response(200, "Phrase modifiée", $result);
-                    }
+                if (isset($data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'], $data['statut'])) {
+                    $result = modifJoueur($linkpdo, $_GET['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'], $data['statut']);
+                    deliver_response(200, "Joueur modifié", $result);
                 } else {
                     deliver_response(400, "Paramètres manquants dans la requête");
                 }
             } else {
-                deliver_response(400, "ID manquant");
+                deliver_response(400, "Numéro de licence manquant");
             }
             break;
-
-        case "DELETE":
-            if (isset($_GET['id'])) {
-                $result = 
-                if ($result) {
-                    deliver_response(200, "Phrase d'ID " . $_GET['id'] . " supprimée");
-                } else {
-                    deliver_response(404, "Phrase inexistante");
-                }
-            } else {
-                deliver_response(400, "ID manquant");
-            }
-            break;
-
+            
         default:
             deliver_response(405, "Méthode non autorisée");
             break;

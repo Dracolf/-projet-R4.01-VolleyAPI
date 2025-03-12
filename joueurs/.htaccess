@@ -1,0 +1,8 @@
+RewriteEngine On
+RewriteBase /volleyapi/joueurs/
+
+# Rediriger les requêtes avec un numéro de licence
+RewriteRule ^([0-9]+)$ joueurs.php?licence=$1 [L,QSA]
+
+# Rediriger les requêtes sans paramètre vers joueurs.php
+RewriteRule ^$ joueurs.php [L]
