@@ -1,5 +1,11 @@
 <?php
 
+    function getJoueur(PDO $linkpdo, int $id) : array {
+        $q = $linkpdo->prepare("SELECT * FROM Joueur WHERE IdJoueur = :id ORDER BY Statut='Absent' ASC, Statut='Blessé' ASC, Statut='Actif' ASC, Nom ASC");
+        $q->execute(['id' => $id]);
+        return $q->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+
     function getAllJoueurs(PDO $linkpdo) : array {
         $q = $linkpdo->prepare("SELECT * FROM Joueur ORDER BY Statut='Absent' ASC, Statut='Blessé' ASC, Statut='Actif' ASC, Nom ASC");
         $q->execute();

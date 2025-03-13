@@ -75,6 +75,65 @@
         return $MEGAREQUETE->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    function getStats1Joueur(PDO $linkpdo, int $id): array {
+        global $dateToday;
+        $MEGAREQUETE = $linkpdo->prepare("
+        SELECT 
+        J.Nom, 
+        J.Prénom,
+        J.Statut,
+        COALESCE((
+            SELECT P1.Rôle 
+            FROM Participer P1
+            WHERE P1.IdJoueur = J.IdJoueur
+            AND P1.Titulaire_ou_remplacant = 'Titulaire'
+            GROUP BY P1.Rôle
+            ORDER BY COUNT(*) DESC, P1.Rôle ASC
+            LIMIT 1
+        ), '/') AS PostePréféré,
+        COUNT(CASE WHEN P.Titulaire_ou_remplacant = 'Titulaire' AND Date_rencontre < :dateToday THEN 1 END) AS NbTitularisations,
+        COUNT(CASE WHEN P.Titulaire_ou_remplacant = 'Remplaçant' AND Date_rencontre < :dateToday THEN 1 END) AS NbRemplacements,
+        COALESCE(ROUND(AVG(P.Note), 2), '/') AS NoteMoyenne,
+        CASE 
+            WHEN COUNT(CASE WHEN Date_rencontre < :dateToday THEN 1 END) = 0 THEN '/'
+            ELSE ROUND(
+                (SUM(
+                    CASE 
+                        WHEN (
+                            (Set1_equipe > Set1_adverse) + 
+                            (Set2_equipe > Set2_adverse) + 
+                            (Set3_equipe > Set3_adverse) + 
+                            (Set4_equipe > Set4_adverse) + 
+                            (Set5_equipe > Set5_adverse)
+                        ) >= 3 
+                        AND P.IdJoueur IS NOT NULL 
+                        AND Date_rencontre < :dateToday
+                    THEN 1 ELSE 0 END
+                ) * 100.0) 
+                / COUNT(
+                    CASE 
+                        WHEN P.IdJoueur IS NOT NULL 
+                        AND Date_rencontre < :dateToday 
+                        THEN 1 ELSE NULL END
+                ), 
+                2
+            )
+        END AS PourcentageVictoires
+        FROM 
+            Joueur J
+        LEFT JOIN 
+            Participer P ON J.IdJoueur = P.IdJoueur
+        LEFT JOIN 
+            Rencontre R ON P.IdRencontre = R.IdRencontre
+        WHERE 
+            J.IdJoueur = :id
+        GROUP BY 
+            J.IdJoueur, J.Nom, J.Prénom, J.Statut
+    ");
+        $MEGAREQUETE->execute(['dateToday' => $dateToday, 'id' => $id]);
+        return $MEGAREQUETE->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+
     function getNbMatchsWin(PDO $linkpdo): array {
         global $dateToday;
         $reqMatchsWin = $linkpdo->prepare("SELECT COUNT(*) as nb FROM Rencontre WHERE (

@@ -1,8 +1,11 @@
 RewriteEngine On
 RewriteBase /volleyapi/joueurs/
 
-# Rediriger les requêtes avec un numéro de licence
-RewriteRule ^([0-9]+)$ joueurs.php?licence=$1 [L,QSA]
+# Si l'URL contient un ID numérique -> redirige vers joueurs.php?id=XXX
+RewriteRule ^([0-9]+)$ joueurs.php?id=$1 [L,QSA]
 
-# Rediriger les requêtes sans paramètre vers joueurs.php
+# Si l'URL contient un numéro de licence (avec un 'l' devant) -> joueurs.php?licence=XXX
+RewriteRule ^l([0-9]+)$ joueurs.php?licence=$1 [L,QSA]
+
+# Si l'URL est juste /volleyapi/joueurs/ -> joueurs.php (récupérer tous les joueurs)
 RewriteRule ^$ joueurs.php [L]

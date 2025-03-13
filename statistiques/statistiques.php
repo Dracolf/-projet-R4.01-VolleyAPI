@@ -51,7 +51,14 @@
     $http_method = $_SERVER['REQUEST_METHOD'];
     switch ($http_method) {
         case "GET":
-            if (isset($_GET['nbMatchs'])) {
+            if (isset($_GET['id'])) {
+                $data = getStats1Joueur($linkpdo, $_GET['id']);
+                if ($data == []) {
+                    deliver_response(404, "Joueur non existant");
+                } else {
+                    deliver_response(200, "Requête GET réussie", $data);
+                }
+            } else if (isset($_GET['nbMatchs'])) {
                 $data = getNbMatchsJoues($linkpdo);
                 if ($data == []) {
                     deliver_response(404, "Aucune donnée trouvée");

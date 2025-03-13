@@ -1,5 +1,10 @@
 RewriteEngine On
 RewriteBase /volleyapi/statistiques/
 
+RewriteRule ^([0-9]+)$ statistiques.php?id=$1 [L,QSA]
+RewriteRule ^nbMatchs$ statistiques.php?nbMatchs=1 [L,QSA]
+RewriteRule ^wins$ statistiques.php?wins=1 [L,QSA]
+RewriteRule ^looses$ statistiques.php?looses=1 [L,QSA]
+
 # Rediriger avec ou sans le slash final vers statistiques.php
 RewriteRule ^/?$ statistiques.php [L]
