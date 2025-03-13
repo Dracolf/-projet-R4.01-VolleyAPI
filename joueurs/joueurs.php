@@ -68,20 +68,47 @@
             }  
             break;
 
+        case "POST":
+            $postedData = file_get_contents('php://input');
+            $data = json_decode($postedData, true);
+            if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
+                $result = addJoueur($linkpdo, $data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
+                deliver_response(200, "Joueur ajouté");
+            } else {
+                deliver_response(400, "Paramètres manquants dans la requête");
+            }
+            break;
+
         case "PUT":
-            if (isset($_GET['licence'])) {
+            if (isset($_GET['id'])) {
                 $postedData = file_get_contents('php://input');
                 $data = json_decode($postedData, true);
-                if (isset($data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'], $data['statut'])) {
-                    $result = modifJoueur($linkpdo, $_GET['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'], $data['statut']);
-                    deliver_response(200, "Joueur modifié", $result);
+                if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
+                    $result = modifJoueur($linkpdo, $_GET['id'],$data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
+                    if ($result) {
+                        deliver_response(200, "Joueur modifié");
+                    } else {
+                        deliver_response(404, "Joueur inexistant");
+                    }
                 } else {
                     deliver_response(400, "Paramètres manquants dans la requête");
                 }
             } else {
-                deliver_response(400, "Numéro de licence manquant");
+                deliver_response(400, "ID manquant");
             }
             break;
+
+        case "DELETE":
+            if (isset($_GET['id'])) {
+                $data = deleteJoueur($linkpdo, $_GET['id']);
+                if ($data) {
+                    deliver_response(200, "Joueur d'ID " . $_GET['id'] . " supprimé");
+                } else {
+                    deliver_response(404, "Joueur inexistant");
+                }
+            } else {
+                deliver_response(400, "ID manquant");
+            }
             
         default:
             deliver_response(405, "Méthode non autorisée");
