@@ -73,7 +73,11 @@
             $data = json_decode($postedData, true);
             if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
                 $result = addJoueur($linkpdo, $data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
-                deliver_response(200, "Joueur ajouté");
+                if ($result === true) {
+                    deliver_response(200, "Joueur ajouté");
+                } else {
+                    deliver_response(400, $result);
+                }       
             } else {
                 deliver_response(400, "Paramètres manquants dans la requête");
             }
@@ -101,14 +105,17 @@
         case "DELETE":
             if (isset($_GET['id'])) {
                 $data = deleteJoueur($linkpdo, $_GET['id']);
-                if ($data) {
+                if ($data === true) {
                     deliver_response(200, "Joueur d'ID " . $_GET['id'] . " supprimé");
-                } else {
+                } else if ($data === false) {
                     deliver_response(404, "Joueur inexistant");
+                } else {
+                    deliver_response(400, $data);
                 }
             } else {
                 deliver_response(400, "ID manquant");
             }
+            break;
             
         default:
             deliver_response(405, "Méthode non autorisée");

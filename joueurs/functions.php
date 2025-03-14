@@ -13,23 +13,31 @@
     }
 
     function addJoueur(PDO $linkpdo, int $licence, string $nom, string $prenom, string $naissance, int $taille, float $poids, ?string $commentaire, string $statut) {
-        $insertQuery = $linkpdo->prepare("
-            INSERT INTO Joueur (
-                Numéro_de_license, Nom, Prénom, Date_de_naissance, Taille, Poids, Commentaire, Statut
-            ) VALUES (
-                :license, :nom, :prenom, :dnaiss, :taille, :poids, :comm, :statut
-            )
-        ");
-        $insertQuery->execute([
-            ':license' => $licence,
-            ':nom' => $nom,
-            ':prenom' => $prenom,
-            ':dnaiss' => $naissance,
-            ':taille' => $taille,
-            ':poids' => $poids,
-            ':comm' => $commentaire,
-            ':statut' => $statut
-        ]);
+        try {
+            $insertQuery = $linkpdo->prepare("
+                INSERT INTO Joueur (
+                    Numéro_de_license, Nom, Prénom, Date_de_naissance, Taille, Poids, Commentaire, Statut
+                ) VALUES (
+                    :license, :nom, :prenom, :dnaiss, :taille, :poids, :comm, :statut
+                )
+            ");
+            $insertQuery->execute([
+                ':license' => $licence,
+                ':nom' => $nom,
+                ':prenom' => $prenom,
+                ':dnaiss' => $naissance,
+                ':taille' => $taille,
+                ':poids' => $poids,
+                ':comm' => $commentaire,
+                ':statut' => $statut
+            ]);
+            return true;
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) { 
+                return "Le numéro de licence $licence est déjà utilisé.";
+            }
+            return "Erreur interne du serveur.";
+        }
     }
 
     function modifJoueur(PDO $linkpdo, int $id, int $licence, string $nom, string $prenom, string $naissance, int $taille, float $poids, ?string $commentaire, string $statut) : bool {
@@ -51,9 +59,15 @@
         return true;
     }
 
-    function deleteJoueur(PDO $linkpdo, int $id) : bool {
+    function deleteJoueur(PDO $linkpdo, int $id) {
         if (getJoueur($linkpdo, $id) == [] ) {
             return false;
+        }
+        $searchMatchs = $linkpdo->prepare("SELECT COUNT(*) as nbMatchs FROM Participer WHERE IdJoueur = :id");
+        $searchMatchs->execute(['id' => $id]);
+        $nbMatchs = $searchMatchs->fetch(PDO::FETCH_ASSOC);
+        if ($nbMatchs['nbMatchs'] > 0) {
+            return "Le joueur ne peut pas être supprimé car il a déjà participé à un match";
         }
         $delete = $linkpdo->prepare("DELETE FROM Joueur WHERE IdJoueur = :id");
         $delete->execute(['id' => $id]);
