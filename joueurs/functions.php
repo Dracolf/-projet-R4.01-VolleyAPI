@@ -6,6 +6,18 @@
         return $q->fetch(PDO::FETCH_ASSOC) ?: [];
     }
 
+    function searchJoueurs(PDO $linkpdo, string $query) : array {
+        $q = $linkpdo->prepare("
+            SELECT * FROM Joueur
+            WHERE Numéro_de_license LIKE :query
+               OR Nom LIKE :query
+               OR Prénom LIKE :query
+            ORDER BY Nom ASC
+        ");
+        $q->execute(['query' => "%$query%"]);
+        return $q->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     function getAllJoueurs(PDO $linkpdo) : array {
         $q = $linkpdo->prepare("SELECT * FROM Joueur ORDER BY Statut='Absent' ASC, Statut='Blessé' ASC, Statut='Actif' ASC, Nom ASC");
         $q->execute();
@@ -40,23 +52,31 @@
         }
     }
 
-    function modifJoueur(PDO $linkpdo, int $id, int $licence, string $nom, string $prenom, string $naissance, int $taille, float $poids, ?string $commentaire, string $statut) : bool {
+    function modifJoueur(PDO $linkpdo, int $id, int $licence, string $nom, string $prenom, string $naissance, int $taille, float $poids, ?string $commentaire, string $statut) {
         if (getJoueur($linkpdo, $id) ==[]) {
             return false;
         }
-        $update = $linkpdo->prepare("UPDATE Joueur SET Commentaire=:c, Nom=:nom, Prénom=:prenom, Date_de_naissance=:naissance, Taille=:taille, Poids=:poids, Statut=:statut, Numéro_de_license=:l WHERE IdJoueur = :id");
-        $update->execute([
-            ':c' => $commentaire,
-            ':nom' => $nom,
-            ':prenom' => $prenom,
-            ':naissance' => $naissance,
-            ':taille' => $taille,
-            ':poids' => $poids,
-            ':statut' => $statut,
-            ':l' => $licence,
-            ':id' => $id,
-        ]);
-        return true;
+
+        try {
+            $update = $linkpdo->prepare("UPDATE Joueur SET Commentaire=:c, Nom=:nom, Prénom=:prenom, Date_de_naissance=:naissance, Taille=:taille, Poids=:poids, Statut=:statut, Numéro_de_license=:l WHERE IdJoueur = :id");
+            $update->execute([
+                ':c' => $commentaire,
+                ':nom' => $nom,
+                ':prenom' => $prenom,
+                ':naissance' => $naissance,
+                ':taille' => $taille,
+                ':poids' => $poids,
+                ':statut' => $statut,
+                ':l' => $licence,
+                ':id' => $id,
+            ]);
+            return true;
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) { 
+                return "Le numéro de licence $licence est déjà utilisé.";
+            }
+            return "Erreur interne du serveur.";
+        }
     }
 
     function deleteJoueur(PDO $linkpdo, int $id) {

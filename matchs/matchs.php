@@ -16,18 +16,21 @@
     switch ($http_method) {
         case "GET":
             if (isset($_GET['id'])) {
-                $data = 
+                $data = getMatch($linkpdo, $_GET['id']);
                 if ($data == []) {
-                    deliver_response(404, "Aucune donnée trouvée");
+                    deliver_response(404, "Match inexistant");
                 } else {
                     deliver_response(200, "Requête GET réussie", $data);
                 }
             } else {
-                $data = 
+                $data = getAllMatchs($linkpdo);
+                if ($data ==[]) {
+                    deliver_response(404, "Aucun match trouvé");
+                }
                 deliver_response(200, "Requête GET réussie", $data);
             }
             break;
-            
+          /*  
         case "POST":
             $postedData = file_get_contents('php://input');
             $data = json_decode($postedData, true);
@@ -85,7 +88,7 @@
                 deliver_response(400, "ID manquant");
             }
             break;
-
+*/
         default:
             deliver_response(405, "Méthode non autorisée");
             break;

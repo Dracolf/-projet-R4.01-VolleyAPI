@@ -1,9 +1,11 @@
 RewriteEngine On
 RewriteBase /volleyapi/joueurs/
 
-# Si l'URL contient un ID numérique -> redirige vers joueurs.php?id=XXX
+# Règle 1 : Si l'URL contient un ID numérique -> redirige vers joueurs.php?id=XXX
 RewriteRule ^([0-9]+)$ joueurs.php?id=$1 [L,QSA]
 
+# Règle 2 : Si l'URL est /volleyapi/joueurs/search/XXX -> redirige vers joueurs.php?query=XXX
+RewriteRule ^search/(.*)$ joueurs.php?query=$1 [L,QSA]
 
-# Si l'URL est juste /volleyapi/joueurs/ -> joueurs.php (récupérer tous les joueurs)
+# Règle 3 : Si l'URL est juste /volleyapi/joueurs/ -> redirige vers joueurs.php
 RewriteRule ^$ joueurs.php [L]

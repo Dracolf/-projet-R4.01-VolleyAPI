@@ -58,6 +58,14 @@
                 } else {
                     deliver_response(200, "Requête GET réussie", $data);
                 }
+            } elseif (isset($_GET['query'])) {
+                $query = $_GET['query'];
+                $data = searchJoueurs($linkpdo, $query);
+                if ($data == []) {
+                    deliver_response(404, "Aucun joueur trouvé");
+                } else {
+                    deliver_response(200, "Requête GET réussie", $data);
+                }
             } else {
                 $data = getAllJoueurs($linkpdo);
                 if ($data == []) {
@@ -65,9 +73,8 @@
                 } else {
                     deliver_response(200, "Requête GET réussie", $data);
                 }
-            }  
+            }
             break;
-
         case "POST":
             $postedData = file_get_contents('php://input');
             $data = json_decode($postedData, true);
@@ -89,10 +96,12 @@
                 $data = json_decode($postedData, true);
                 if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
                     $result = modifJoueur($linkpdo, $_GET['id'],$data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
-                    if ($result) {
+                    if ($result === true) {
                         deliver_response(200, "Joueur modifié");
-                    } else {
+                    } else if ($result === false) {
                         deliver_response(404, "Joueur inexistant");
+                    } else {
+                        deliver_response(400, $result);
                     }
                 } else {
                     deliver_response(400, "Paramètres manquants dans la requête");
