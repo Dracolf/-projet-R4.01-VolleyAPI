@@ -81,7 +81,7 @@
             if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
                 $result = addJoueur($linkpdo, $data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
                 if ($result === true) {
-                    deliver_response(200, "Joueur ajouté");
+                    deliver_response(201, "Joueur ajouté");
                 } else {
                     deliver_response(400, $result);
                 }       

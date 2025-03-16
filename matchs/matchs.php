@@ -30,18 +30,23 @@
                 deliver_response(200, "Requête GET réussie", $data);
             }
             break;
-          /*  
+          
         case "POST":
             $postedData = file_get_contents('php://input');
             $data = json_decode($postedData, true);
-            if (isset($data[''])) {
-                $result = 
-                deliver_response(201, "Phrase ajoutée avec succès", $result);
+            if (isset($data['date'], $data['adversaire'], $data['domext'], $data['avd'], $data['avc'], $data['avg'], $data['ard'], $data['arg'], $data['lib'], 
+            $data['r1'], $data['r2'], $data['r3'], $data['r4'], $data['r5'], $data['r6'])) {
+                $result = addMatch($linkpdo, $data);
+                if ($result === "Match et participations ajoutés avec succès !") {
+                    deliver_response(201, $result);
+                } else {
+                    deliver_response(500, $result);
+                }
             } else {
-                deliver_response(400, "Aucune phrase renseignée");
+                deliver_response(400, "Paramètres manquants dans la requête");
             }
             break;
-
+        /*
         case "PATCH":
             if (isset($_GET['id'])) {
                 $postedData = file_get_contents('php://input');
