@@ -94,7 +94,6 @@
         } catch (Exception $e) {
             // En cas d'erreur, annuler la transaction
             $linkpdo->rollBack();
-            echo "Transaction annulée !\n";
             return "Erreur : " . $e->getMessage();
         }
     }
