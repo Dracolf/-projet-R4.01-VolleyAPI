@@ -12,6 +12,42 @@
         exit();
     }
 
+    // Récupération du token JWT depuis l'en-tête Authorization
+    function get_bearer_token() {
+        $headers = apache_request_headers();
+        if (!isset($headers['Authorization'])) {
+            return null;
+        }
+        if (preg_match('/Bearer\s(\S+)/', $headers['Authorization'], $matches)) {
+            return $matches[1];
+        }
+        return null;
+    }
+
+    $token = get_bearer_token();
+
+    if (!$token) {
+        deliver_response(403, "Accès interdit : Aucun token fourni");
+        exit();
+    }
+
+    // Vérification du token en envoyant une requête GET à l’API d'authentification
+    $auth_url = "https://volleycoachpro.alwaysdata.net/authapi/";
+    $ch = curl_init($auth_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer $token"]);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $data = json_decode($response, true);
+
+    if ($http_code !== 200 || !isset($data['message'])) {
+        deliver_response(403, "Accès interdit : Token invalide");
+        exit();
+    }
+
     $http_method = $_SERVER['REQUEST_METHOD'];
     switch ($http_method) {
         case "GET":
@@ -46,32 +82,38 @@
                 deliver_response(400, "Paramètres manquants dans la requête");
             }
             break;
-        /*
-        case "PATCH":
-            if (isset($_GET['id'])) {
-                $postedData = file_get_contents('php://input');
-                $data = json_decode($postedData, true);
-                $result = patchChuckFact($linkpdo, $_GET['id'], $data['phrase'] ?? null, $data['vote'] ?? null, $data['faute'] ?? null, $data['signalement'] ?? null);
-                if ($result == []) {
-                    deliver_response(404, "Phrase inexistante");
-                } else {
-                    deliver_response(200, "Phrase modifiée", $result);
-                }
-            } else {
-                deliver_response(400, "ID manquant");
-            }
-            break;
 
         case "PUT":
             if (isset($_GET['id'])) {
                 $postedData = file_get_contents('php://input');
                 $data = json_decode($postedData, true);
-                if (isset($data['phrase'], $data['vote'], $data['faute'], $data['signalement'])) {
-                    $result = putChuckFact($linkpdo, $_GET['id'], $data['phrase'], $data['vote'], $data['faute'], $data['signalement']);
-                    if ($result == []) {
-                        deliver_response(404, "Phrase inexistante");
+                if (isset($data['date'], $data['adversaire'], $data['domext'])) {
+                    $result = updateMatchInfos($linkpdo, $_GET['id'], $data['date'], $data['adversaire'], $data['domext']);
+                    if ($result === true) {
+                        deliver_response(200, "Informations de la rencontre modifiées");
+                    } else if ($result === false) {
+                        deliver_response(404, "Match inexistant");
+                    } else  {
+                        deliver_response(500, $result);
+                    }
+                } else if (isset($data['s1e'], $data['s1a'], $data['s2e'], $data['s2a'], $data['s3e'], $data['s3a'], $data['s4e'], $data['s4a'], $data['s5e'], $data['s5a'],
+                $data['noteAVG'], $data['noteAVC'], $data['noteAVD'], $data['noteARG'], $data['noteARD'], $data['noteLIB'], $data['noteR1'], $data['noteR2'], $data['noteR3'], 
+                $data['noteR4'], $data['noteR5'], $data['noteR6'])) {
+                    $result = updateMatchSetsEtNotes($linkpdo, $_GET['id'], $data);
+                    if($result) {
+                        deliver_response(200, "Sets et notes modifiés");
                     } else {
-                        deliver_response(200, "Phrase modifiée", $result);
+                        deliver_response(404, "Match inexistant");
+                    }
+                } else if (isset($data['avg'], $data['avc'], $data['avd'], $data['arg'], $data['ard'], $data['lib'], $data['r1'], $data['r2'], $data['r3'], $data['r4'], $data['r5'], $data['r6'] )) {
+                    $result = updateMatchEquipe($linkpdo, $_GET['id'], $data['avg'], $data['avc'], $data['avd'], $data['arg'], $data['ard'], $data['lib'], $data['r1'], $data['r2'], 
+                    $data['r3'], $data['r4'], $data['r5'], $data['r6']);
+                    if ($result === false) {
+                        deliver_response(404, "Match inexistant");
+                    } else if ($result === true) {
+                        deliver_response(200, "Equipe modifiée");
+                    } else {
+                        deliver_response(500, $result);
                     }
                 } else {
                     deliver_response(400, "Paramètres manquants dans la requête");
@@ -83,17 +125,17 @@
 
         case "DELETE":
             if (isset($_GET['id'])) {
-                $result = 
+                $result = deleteMatch($linkpdo, $_GET['id']);
                 if ($result) {
-                    deliver_response(200, "Phrase d'ID " . $_GET['id'] . " supprimée");
+                    deliver_response(200, "Rencontre d'ID " . $_GET['id'] . " supprimée");
                 } else {
-                    deliver_response(404, "Phrase inexistante");
+                    deliver_response(404, "Rencontre inexistante");
                 }
             } else {
                 deliver_response(400, "ID manquant");
             }
             break;
-*/
+
         default:
             deliver_response(405, "Méthode non autorisée");
             break;
