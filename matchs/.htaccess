@@ -1,6 +1,10 @@
 RewriteEngine On
 RewriteBase /volleyapi/matchs/
 
+# Règle pour /volleyapi/matchs/equipe/<id>
+RewriteRule ^equipe/([0-9]+)$ matchs.php?team=1&id=$1 [L,QSA]
+
+# Règle pour /volleyapi/matchs/<id> (originale)
 RewriteRule ^([0-9]+)$ matchs.php?id=$1 [L,QSA]
 
 # Rediriger avec ou sans le slash final vers matchs.php

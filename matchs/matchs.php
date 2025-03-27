@@ -52,11 +52,20 @@
     switch ($http_method) {
         case "GET":
             if (isset($_GET['id'])) {
-                $data = getMatch($linkpdo, $_GET['id']);
-                if ($data == []) {
-                    deliver_response(404, "Match inexistant");
+                if (isset($_GET['team'])) {
+                    $data = getMatchEquipe($linkpdo, $_GET['id']);
+                    if ($data == []) {
+                        deliver_response(404, "Match inexistant");
+                    } else {
+                        deliver_response(200, "Requête GET réussie", $data);
+                    }
                 } else {
-                    deliver_response(200, "Requête GET réussie", $data);
+                    $data = getMatch($linkpdo, $_GET['id']);
+                    if ($data == []) {
+                        deliver_response(404, "Match inexistant");
+                    } else {
+                        deliver_response(200, "Requête GET réussie", $data);
+                    }
                 }
             } else {
                 $data = getAllMatchs($linkpdo);

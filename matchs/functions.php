@@ -12,6 +12,12 @@
         return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    function getMatchEquipe(PDO $linkpdo, int $id) : array {
+        $query = $linkpdo->prepare("SELECT * FROM Participer WHERE IdRencontre = :id");
+        $query->execute(['id' => $id]);
+        return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     function addMatch(PDO $linkpdo, array $data) {
         $date = $data['date'];
         $adversaire = $data['adversaire'];
