@@ -48,6 +48,26 @@
         exit();
     }
 
+    // Stockage du login de l'utilisateur dans une variable globale
+    $userLogin = null;
+    if (isset($data['login'])) {
+        $userLogin = $data['login'];
+    } else {
+        // Si l'API d'authentification ne renvoie pas le login, on peut essayer de le décoder depuis le token
+        $tokenParts = explode('.', $token);
+        if (count($tokenParts) === 3) {
+            $payload = json_decode(base64_decode($tokenParts[1]), true);
+            if (isset($payload['login'])) {
+                $userLogin = $payload['login'];
+            }
+        }
+    }
+
+    if (!$userLogin) {
+        deliver_response(403, "Accès interdit : Impossible de déterminer l'utilisateur");
+        exit();
+    }
+
     $http_method = $_SERVER['REQUEST_METHOD'];
     switch ($http_method) {
         case "GET":
@@ -76,54 +96,69 @@
             }
             break;
         case "POST":
-            $postedData = file_get_contents('php://input');
-            $data = json_decode($postedData, true);
-            if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
-                $result = addJoueur($linkpdo, $data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
-                if ($result === true) {
-                    deliver_response(201, "Joueur ajouté");
-                } else {
-                    deliver_response(400, $result);
-                }       
-            } else {
-                deliver_response(400, "Paramètres manquants dans la requête");
-            }
-            break;
-
-        case "PUT":
-            if (isset($_GET['id'])) {
+            if ($userLogin == "coach") {
                 $postedData = file_get_contents('php://input');
                 $data = json_decode($postedData, true);
                 if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
-                    $result = modifJoueur($linkpdo, $_GET['id'],$data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
+                    $result = addJoueur($linkpdo, $data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
                     if ($result === true) {
-                        deliver_response(200, "Joueur modifié");
-                    } else if ($result === false) {
-                        deliver_response(404, "Joueur inexistant");
+                        deliver_response(201, "Joueur ajouté");
                     } else {
                         deliver_response(400, $result);
-                    }
+                    }       
                 } else {
                     deliver_response(400, "Paramètres manquants dans la requête");
                 }
             } else {
-                deliver_response(400, "ID manquant");
+                deliver_response(403, "Seul le coach peut ajouter un nouveau joueur");
             }
+            
+            break;
+
+        case "PUT":
+            if ($userLogin == "coach") {
+                if (isset($_GET['id'])) {
+                    $postedData = file_get_contents('php://input');
+                    $data = json_decode($postedData, true);
+                    if (isset($data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['statut'])) {
+                        $result = modifJoueur($linkpdo, $_GET['id'],$data['licence'], $data['nom'], $data['prenom'], $data['naissance'], $data['taille'], $data['poids'], $data['commentaire'] ?? null, $data['statut']);
+                        if ($result === true) {
+                            deliver_response(200, "Joueur modifié");
+                        } else if ($result === false) {
+                            deliver_response(404, "Joueur inexistant");
+                        } else {
+                            deliver_response(400, $result);
+                        }
+                    } else {
+                        deliver_response(400, "Paramètres manquants dans la requête");
+                    }
+                } else {
+                    deliver_response(400, "ID manquant");
+                }
+            } else {
+                deliver_response(403, "Seul le coach peut modifier un joueur");
+            }
+            
             break;
 
         case "DELETE":
-            if (isset($_GET['id'])) {
-                $data = deleteJoueur($linkpdo, $_GET['id']);
-                if ($data === true) {
-                    deliver_response(200, "Joueur d'ID " . $_GET['id'] . " supprimé");
-                } else if ($data === false) {
-                    deliver_response(404, "Joueur inexistant");
+            if ($userLogin == "coach") {
+                if (isset($_GET['id'])) {
+                    $data = deleteJoueur($linkpdo, $_GET['id']);
+                    if ($data === true) {
+                        deliver_response(200, "Joueur d'ID " . $_GET['id'] . " supprimé");
+                    } else if ($data === false) {
+                        deliver_response(404, "Joueur inexistant");
+                    } else {
+                        deliver_response(400, $data);
+                    }
                 } else {
-                    deliver_response(400, $data);
+                    deliver_response(400, "ID manquant");
                 }
             } else {
-                deliver_response(400, "ID manquant");
+                deliver_response(403, "Seul le coach peut supprimer un joueur");
             }
+            
             break;
             
         default:
