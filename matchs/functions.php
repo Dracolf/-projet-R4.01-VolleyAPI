@@ -18,6 +18,80 @@
         return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    function validateVolleyballScores(array $scores): array {
+        // Fonction de validation d'un set
+        $validateSet = function($teamScore, $oppScore, $isTieBreak = false) {
+            $maxPoints = $isTieBreak ? 15 : 25;
+            
+            // Scores négatifs
+            if ($teamScore < 0 || $oppScore < 0) {
+                return [false, "Les scores ne peuvent pas être négatifs"];
+            }
+            
+            // Scores absolument trop élevés
+            if ($teamScore > $maxPoints + 2 || $oppScore > $maxPoints + 2) {
+                return [false, "Un score ne peut dépasser ".($maxPoints + 2)." points"];
+            }
+            
+            // Si un score dépasse le maximum
+            if ($teamScore > $maxPoints || $oppScore > $maxPoints) {
+                if (abs($teamScore - $oppScore) != 2) {
+                    return [false, "Il faut exactement 2 points d'écart quand un score dépasse $maxPoints"];
+                }
+                if ($teamScore > $maxPoints && $oppScore > $maxPoints) {
+                    return [false, "Un seul score peut dépasser $maxPoints"];
+                }
+            }
+            
+            return [true, ""];
+        };
+
+        // Validation des sets 1-4
+        for ($i = 1; $i <= 4; $i++) {
+            [$valid, $message] = $validateSet($scores["s{$i}e"], $scores["s{$i}a"], false);
+            if (!$valid) {
+                return [false, "Set $i: $message"];
+            }
+        }
+
+        // Validation du set 5
+        [$valid, $message] = $validateSet($scores['s5e'], $scores['s5a'], true);
+        if (!$valid) {
+            return [false, "Set 5: $message"];
+        }
+
+        // Vérification du nombre de sets gagnés
+        $countSetsWon = function($teamScore, $oppScore, $isTieBreak = false) {
+            $winningPoints = $isTieBreak ? 15 : 25;
+            return ($teamScore >= $winningPoints && ($teamScore - $oppScore) >= 2) ? 1 : 0;
+        };
+
+        $teamSetsWon = $countSetsWon($scores['s1e'], $scores['s1a'], false) 
+                    + $countSetsWon($scores['s2e'], $scores['s2a'], false)
+                    + $countSetsWon($scores['s3e'], $scores['s3a'], false)
+                    + $countSetsWon($scores['s4e'], $scores['s4a'], false)
+                    + $countSetsWon($scores['s5e'], $scores['s5a'], true);
+
+        $oppSetsWon = $countSetsWon($scores['s1a'], $scores['s1e'], false)
+                    + $countSetsWon($scores['s2a'], $scores['s2e'], false)
+                    + $countSetsWon($scores['s3a'], $scores['s3e'], false)
+                    + $countSetsWon($scores['s4a'], $scores['s4e'], false)
+                    + $countSetsWon($scores['s5a'], $scores['s5e'], true);
+
+        if ($teamSetsWon > 3 || $oppSetsWon > 3) {
+            return [false, "Une équipe ne peut pas gagner plus de 3 sets"];
+        }
+
+        // Vérification de la cohérence du match terminé
+        if (($teamSetsWon == 3 || $oppSetsWon == 3) && 
+            ($teamSetsWon + $oppSetsWon) < 5 && 
+            ($scores['s5e'] > 0 || $scores['s5a'] > 0)) {
+            return [false, "Incohérence: un 5ème set est renseigné alors que le match était déjà terminé"];
+        }
+
+        return [true, "Scores valides"];
+    }
+
     function addMatch(PDO $linkpdo, array $data) {
         $date = $data['date'];
         $adversaire = $data['adversaire'];
@@ -32,6 +106,26 @@
         $s4a = $data['s4a'] ?? 0;
         $s5e = $data['s5e'] ?? 0;
         $s5a = $data['s5a'] ?? 0;
+
+        // Récupération des scores
+        $scores = [
+            's1e' => $s1e ?? 0,
+            's1a' => $s1a ?? 0,
+            's2e' => $s2e ?? 0,
+            's2a' => $s2a ?? 0,
+            's3e' => $s3e ?? 0,
+            's3a' => $s3a ?? 0,
+            's4e' => $s4e ?? 0,
+            's4a' => $s4a ?? 0,
+            's5e' => $s5e ?? 0,
+            's5a' => $s5a ?? 0
+        ];
+
+        // Validation des scores
+        [$valid, $message] = validateVolleyballScores($scores);
+        if (!$valid) {
+            throw new Exception($message);
+        }
     
         try {
             // Démarrer une transaction
@@ -155,6 +249,26 @@
         $s5e = isset($data['s5e']) ? (int)$data['s5e'] : 0;
         $s5a = isset($data['s5a']) ? (int)$data['s5a'] : 0;
 
+        // Récupération des scores
+        $scores = [
+            's1e' => $s1e ?? 0,
+            's1a' => $s1a ?? 0,
+            's2e' => $s2e ?? 0,
+            's2a' => $s2a ?? 0,
+            's3e' => $s3e ?? 0,
+            's3a' => $s3a ?? 0,
+            's4e' => $s4e ?? 0,
+            's4a' => $s4a ?? 0,
+            's5e' => $s5e ?? 0,
+            's5a' => $s5a ?? 0
+        ];
+
+        // Validation des scores
+        [$valid, $message] = validateVolleyballScores($scores);
+        if (!$valid) {
+            throw new Exception($message);
+        }
+
         // Notes : on associe chaque rôle à la note reçue
         // (ici, on suppose 12 rôles possibles : AVG, AVC, AVD, ARG, ARD, LIB, R1..R6)
         // La table "Participer" stocke la note dans un seul champ "Note" 
@@ -180,78 +294,6 @@
         // Vérification de l’ID de rencontre
         if ($idRencontre <= 0) {
             throw new Exception("ID de rencontre invalide.");
-        }
-
-        // 2) ---- Validation des scores de sets ----
-        // Même logique volley-ball (3 sets gagnants),
-        // on vérifie la validité (25 points min pour sets 1-4, 15 points min set 5, 2 points d’écart, etc.)
-
-        $validateSet = function($teamScore, $oppScore, $isTieBreak = false) {
-            $pointsAAtteindre = $isTieBreak ? 15 : 25;
-
-            // Si aucun n'a encore atteint le seuil minimum, on peut considérer que la saisie est encore incomplète
-            if ($teamScore < $pointsAAtteindre && $oppScore < $pointsAAtteindre) {
-                return true; 
-            }
-
-            // Vérification de l'écart
-            $diff = abs($teamScore - $oppScore);
-            // Si au moins une équipe atteint le seuil
-            if ($teamScore >= $pointsAAtteindre || $oppScore >= $pointsAAtteindre) {
-                if ($diff < 2) {
-                    return false; // pas assez d’écart
-                }
-            }
-            return true;
-        };
-
-        $setsValides = true;
-        // Sets 1-4
-        $setsValides &= $validateSet($s1e, $s1a, false);
-        $setsValides &= $validateSet($s2e, $s2a, false);
-        $setsValides &= $validateSet($s3e, $s3a, false);
-        $setsValides &= $validateSet($s4e, $s4a, false);
-        // Set 5 (tie-break)
-        $setsValides &= $validateSet($s5e, $s5a, true);
-
-        if (!$setsValides) {
-            throw new Exception("Les scores de sets ne sont pas valides (points minima et/ou écart de 2).");
-        }
-
-        // (Optionnel) Calcul du nombre de sets gagnés par chaque équipe pour
-        // vérifier qu’il n’y a pas de situation du type 4 sets gagnés, etc.
-        $countSetsWon = function($teamScore, $oppScore, $isTieBreak = false) {
-            $pointsAAtteindre = $isTieBreak ? 15 : 25;
-            if (
-                $teamScore >= $pointsAAtteindre &&
-                ($teamScore - $oppScore) >= 2
-            ) {
-                return 1; // set gagné
-            }
-            return 0;
-        };
-
-        $teamSetsWon = 0;
-        $oppSetsWon  = 0;
-
-        $teamSetsWon += $countSetsWon($s1e, $s1a, false);
-        $oppSetsWon  += $countSetsWon($s1a, $s1e, false);
-
-        $teamSetsWon += $countSetsWon($s2e, $s2a, false);
-        $oppSetsWon  += $countSetsWon($s2a, $s2e, false);
-
-        $teamSetsWon += $countSetsWon($s3e, $s3a, false);
-        $oppSetsWon  += $countSetsWon($s3a, $s3e, false);
-
-        $teamSetsWon += $countSetsWon($s4e, $s4a, false);
-        $oppSetsWon  += $countSetsWon($s4a, $s4e, false);
-
-        $teamSetsWon += $countSetsWon($s5e, $s5a, true);
-        $oppSetsWon  += $countSetsWon($s5a, $s5e, true);
-
-        // Contrôle : personne ne peut avoir plus de 3 sets gagnés
-        if ($teamSetsWon > 3 || $oppSetsWon > 3) {
-            throw new Exception("Incohérence : plus de 3 sets gagnés pour une équipe.");
         }
 
         // 3) ---- Mise à jour en base ----
