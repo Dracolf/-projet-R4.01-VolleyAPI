@@ -48,6 +48,26 @@
         exit();
     }
 
+    // Stockage du login de l'utilisateur dans une variable globale
+    $userLogin = null;
+    if (isset($data['login'])) {
+        $userLogin = $data['login'];
+    } else {
+        // Si l'API d'authentification ne renvoie pas le login, on peut essayer de le décoder depuis le token
+        $tokenParts = explode('.', $token);
+        if (count($tokenParts) === 3) {
+            $payload = json_decode(base64_decode($tokenParts[1]), true);
+            if (isset($payload['login'])) {
+                $userLogin = $payload['login'];
+            }
+        }
+    }
+
+    if (!$userLogin) {
+        deliver_response(403, "Accès interdit : Impossible de déterminer l'utilisateur");
+        exit();
+    }
+
     $http_method = $_SERVER['REQUEST_METHOD'];
     switch ($http_method) {
         case "GET":
@@ -77,50 +97,14 @@
             break;
           
         case "POST":
-            $postedData = file_get_contents('php://input');
-            $data = json_decode($postedData, true);
-            if (isset($data['date'], $data['adversaire'], $data['domext'], $data['avd'], $data['avc'], $data['avg'], $data['ard'], $data['arg'], $data['lib'], 
-            $data['r1'], $data['r2'], $data['r3'], $data['r4'], $data['r5'], $data['r6'])) {
-                $result = addMatch($linkpdo, $data);
-                if ($result === "Match et participations ajoutés avec succès !") {
-                    deliver_response(201, $result);
-                } else {
-                    deliver_response(500, $result);
-                }
-            } else {
-                deliver_response(400, "Paramètres manquants dans la requête");
-            }
-            break;
-
-        case "PUT":
-            if (isset($_GET['id'])) {
+            if ($userLogin == "coach") {
                 $postedData = file_get_contents('php://input');
                 $data = json_decode($postedData, true);
-                if (isset($data['date'], $data['adversaire'], $data['domext'])) {
-                    $result = updateMatchInfos($linkpdo, $_GET['id'], $data['date'], $data['adversaire'], $data['domext']);
-                    if ($result === true) {
-                        deliver_response(200, "Informations de la rencontre modifiées");
-                    } else if ($result === false) {
-                        deliver_response(404, "Match inexistant");
-                    } else  {
-                        deliver_response(500, $result);
-                    }
-                } else if (isset($data['s1e'], $data['s1a'], $data['s2e'], $data['s2a'], $data['s3e'], $data['s3a'], $data['s4e'], $data['s4a'], $data['s5e'], $data['s5a'],
-                $data['noteAVG'], $data['noteAVC'], $data['noteAVD'], $data['noteARG'], $data['noteARD'], $data['noteLIB'], $data['noteR1'], $data['noteR2'], $data['noteR3'], 
-                $data['noteR4'], $data['noteR5'], $data['noteR6'])) {
-                    $result = updateMatchSetsEtNotes($linkpdo, $_GET['id'], $data);
-                    if($result) {
-                        deliver_response(200, "Sets et notes modifiés");
-                    } else {
-                        deliver_response(404, "Match inexistant");
-                    }
-                } else if (isset($data['avg'], $data['avc'], $data['avd'], $data['arg'], $data['ard'], $data['lib'], $data['r1'], $data['r2'], $data['r3'], $data['r4'], $data['r5'], $data['r6'] )) {
-                    $result = updateMatchEquipe($linkpdo, $_GET['id'], $data['avg'], $data['avc'], $data['avd'], $data['arg'], $data['ard'], $data['lib'], $data['r1'], $data['r2'], 
-                    $data['r3'], $data['r4'], $data['r5'], $data['r6']);
-                    if ($result === false) {
-                        deliver_response(404, "Match inexistant");
-                    } else if ($result === true) {
-                        deliver_response(200, "Equipe modifiée");
+                if (isset($data['date'], $data['adversaire'], $data['domext'], $data['avd'], $data['avc'], $data['avg'], $data['ard'], $data['arg'], $data['lib'], 
+                $data['r1'], $data['r2'], $data['r3'], $data['r4'], $data['r5'], $data['r6'])) {
+                    $result = addMatch($linkpdo, $data);
+                    if ($result === "Match et participations ajoutés avec succès !") {
+                        deliver_response(201, $result);
                     } else {
                         deliver_response(500, $result);
                     }
@@ -128,21 +112,71 @@
                     deliver_response(400, "Paramètres manquants dans la requête");
                 }
             } else {
-                deliver_response(400, "ID manquant");
+                deliver_response(403, "Seul le coach peut ajouter une nouvelle rencontre");
+            }
+            
+            break;
+
+        case "PUT":
+            if ($userLogin == "coach") {
+                if (isset($_GET['id'])) {
+                    $postedData = file_get_contents('php://input');
+                    $data = json_decode($postedData, true);
+                    if (isset($data['date'], $data['adversaire'], $data['domext'])) {
+                        $result = updateMatchInfos($linkpdo, $_GET['id'], $data['date'], $data['adversaire'], $data['domext']);
+                        if ($result === true) {
+                            deliver_response(200, "Informations de la rencontre modifiées");
+                        } else if ($result === false) {
+                            deliver_response(404, "Match inexistant");
+                        } else  {
+                            deliver_response(500, $result);
+                        }
+                    } else if (isset($data['s1e'], $data['s1a'], $data['s2e'], $data['s2a'], $data['s3e'], $data['s3a'], $data['s4e'], $data['s4a'], $data['s5e'], $data['s5a'],
+                    $data['noteAVG'], $data['noteAVC'], $data['noteAVD'], $data['noteARG'], $data['noteARD'], $data['noteLIB'], $data['noteR1'], $data['noteR2'], $data['noteR3'], 
+                    $data['noteR4'], $data['noteR5'], $data['noteR6'])) {
+                        $result = updateMatchSetsEtNotes($linkpdo, $_GET['id'], $data);
+                        if($result) {
+                            deliver_response(200, "Sets et notes modifiés");
+                        } else {
+                            deliver_response(404, "Match inexistant");
+                        }
+                    } else if (isset($data['avg'], $data['avc'], $data['avd'], $data['arg'], $data['ard'], $data['lib'], $data['r1'], $data['r2'], $data['r3'], $data['r4'], $data['r5'], $data['r6'] )) {
+                        $result = updateMatchEquipe($linkpdo, $_GET['id'], $data['avg'], $data['avc'], $data['avd'], $data['arg'], $data['ard'], $data['lib'], $data['r1'], $data['r2'], 
+                        $data['r3'], $data['r4'], $data['r5'], $data['r6']);
+                        if ($result === false) {
+                            deliver_response(404, "Match inexistant");
+                        } else if ($result === true) {
+                            deliver_response(200, "Equipe modifiée");
+                        } else {
+                            deliver_response(500, $result);
+                        }
+                    } else {
+                        deliver_response(400, "Paramètres manquants dans la requête");
+                    }
+                } else {
+                    deliver_response(400, "ID manquant");
+                }
+            } else {
+                deliver_response(403, "Seul le coach peut modifier une rencontre");
             }
             break;
 
         case "DELETE":
-            if (isset($_GET['id'])) {
-                $result = deleteMatch($linkpdo, $_GET['id']);
-                if ($result) {
-                    deliver_response(200, "Rencontre d'ID " . $_GET['id'] . " supprimée");
+            if ($userLogin == "coach") {
+                if (isset($_GET['id'])) {
+                    $result = deleteMatch($linkpdo, $_GET['id']);
+                    if ($result) {
+                        deliver_response(200, "Rencontre d'ID " . $_GET['id'] . " supprimée");
+                    } else {
+                        deliver_response(404, "Rencontre inexistante");
+                    }
                 } else {
-                    deliver_response(404, "Rencontre inexistante");
+                    deliver_response(400, "ID manquant");
                 }
             } else {
-                deliver_response(400, "ID manquant");
+                deliver_response(403, "Seul le coach peut supprimer une rencontre");
             }
+            
             break;
 
         default:
