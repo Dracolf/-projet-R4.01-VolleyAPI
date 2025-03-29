@@ -182,7 +182,7 @@
                         'idMatch' => $idMatch,
                         'role' => $role,
                         'titulaire' => $titulaire,
-                        'note' => null
+                        'note' => 1
                     ]);
                 }
             }
@@ -277,18 +277,18 @@
         // On regroupe les notes dans un tableau clé => valeur
         // pour faire un traitement en boucle ensuite.
         $notesParRole = [
-            'avant_gauche' => isset($data['noteAVG']) ? (int)$data['noteAVG'] : 0,
-            'avant_centre' => isset($data['noteAVC']) ? (int)$data['noteAVC'] : 0,
-            'avant_droit' => isset($data['noteAVD']) ? (int)$data['noteAVD'] : 0,
-            'arriere_gauche' => isset($data['noteARG']) ? (int)$data['noteARG'] : 0,
-            'arriere_droit' => isset($data['noteARD']) ? (int)$data['noteARD'] : 0,
-            'libero' => isset($data['noteLIB']) ? (int)$data['noteLIB'] : 0,
-            'remp1'  => isset($data['noteR1'])  ? (int)$data['noteR1']  : 0,
-            'remp2'  => isset($data['noteR2'])  ? (int)$data['noteR2']  : 0,
-            'remp3'  => isset($data['noteR3'])  ? (int)$data['noteR3']  : 0,
-            'remp4'  => isset($data['noteR4'])  ? (int)$data['noteR4']  : 0,
-            'remp5'  => isset($data['noteR5'])  ? (int)$data['noteR5']  : 0,
-            'remp6'  => isset($data['noteR6'])  ? (int)$data['noteR6']  : 0
+            'avant_gauche' => isset($data['noteAVG']) ? (int)$data['noteAVG'] : 1,
+            'avant_centre' => isset($data['noteAVC']) ? (int)$data['noteAVC'] : 1,
+            'avant_droit' => isset($data['noteAVD']) ? (int)$data['noteAVD'] : 1,
+            'arriere_gauche' => isset($data['noteARG']) ? (int)$data['noteARG'] : 1,
+            'arriere_droit' => isset($data['noteARD']) ? (int)$data['noteARD'] : 1,
+            'libero' => isset($data['noteLIB']) ? (int)$data['noteLIB'] : 1,
+            'remp1'  => isset($data['noteR1'])  ? (int)$data['noteR1']  : 1,
+            'remp2'  => isset($data['noteR2'])  ? (int)$data['noteR2']  : 1,
+            'remp3'  => isset($data['noteR3'])  ? (int)$data['noteR3']  : 1,
+            'remp4'  => isset($data['noteR4'])  ? (int)$data['noteR4']  : 1,
+            'remp5'  => isset($data['noteR5'])  ? (int)$data['noteR5']  : 1,
+            'remp6'  => isset($data['noteR6'])  ? (int)$data['noteR6']  : 1
         ];
 
         // Vérification de l’ID de rencontre
