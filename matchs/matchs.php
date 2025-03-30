@@ -97,7 +97,7 @@
             break;
           
         case "POST":
-            if ($userLogin == "coach") {
+            if ($userLogin == "coach" || $userLogin == "Coach") {
                 $postedData = file_get_contents('php://input');
                 $data = json_decode($postedData, true);
                 if (isset($data['date'], $data['adversaire'], $data['domext'], $data['avd'], $data['avc'], $data['avg'], $data['ard'], $data['arg'], $data['lib'], 
@@ -118,7 +118,7 @@
             break;
 
         case "PUT":
-            if ($userLogin == "coach") {
+            if ($userLogin == "coach" || $userLogin == "Coach") {
                 if (isset($_GET['id'])) {
                     $postedData = file_get_contents('php://input');
                     $data = json_decode($postedData, true);
@@ -162,7 +162,7 @@
             break;
 
         case "DELETE":
-            if ($userLogin == "coach") {
+            if ($userLogin == "coach" || $userLogin == "Coach") {
                 if (isset($_GET['id'])) {
                     $result = deleteMatch($linkpdo, $_GET['id']);
                     if ($result) {
